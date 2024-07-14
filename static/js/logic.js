@@ -7,24 +7,38 @@ d3.json(queryUrl).then(function (data) {
   createFeatures(data.features);
 });
 
-function createFeatures(earthquakeData) {
-
-  // Define a function to create a color scale based on magnitude.
-  function createColorScale(minColor, maxColor, numSplits) {
-    const colorScale = d3.scaleLinear()
-      .domain([0, numSplits])
-      .range([minColor, maxColor])
-      .interpolate(d3.interpolateHcl);
-
-    return function(magnitude) {
-      const splitIndex = Math.min(Math.floor(magnitude), numSplits);
-      return colorScale(splitIndex);
+// A function to create a color scale based on depth.
+function createDepthColorScale() {
+    return function(depth) {
+      return depth > 90 ? '#FF0000' :  
+             depth > 70 ? '#FF4500' :  
+             depth > 50 ? '#FF8C00' :  
+             depth > 30 ? '#FFD700' :  
+             depth > 10 ? '#FFFF00' :  
+                          '#ADFF2F';   
     };
   }
 
-  // Use the color scale function to generate colors.
-  const getColor = createColorScale('#90ee90', '#c04040', 5); // green to red with 5 splits
+// Use the depth color scale function to generate colors.
+const getDepthColor = createDepthColorScale(); 
 
+// A function to create a color scale based on magnitude.
+function createColorScale(minColor, maxColor, numSplits) {
+  const colorScale = d3.scaleLinear()
+    .domain([0, numSplits])
+    .range([minColor, maxColor])
+    .interpolate(d3.interpolateHcl);
+
+  return function(magnitude) {
+    const splitIndex = Math.min(Math.floor(magnitude), numSplits);
+    return colorScale(splitIndex);
+  };
+}
+
+// Use the color scale function to generate colors.
+const getColor = createColorScale('#90ee90', '#c04040', 5);
+
+function createFeatures(earthquakeData) {
   // Define a function to determine the radius of the marker based on the earthquake magnitude.
   function getRadius(magnitude) {
     return magnitude * 4;
@@ -56,7 +70,6 @@ function createFeatures(earthquakeData) {
 }
 
 function createMap(earthquakes) {
-
   // Create the Esri satellite base layer.
   let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles © Esri'
@@ -105,14 +118,14 @@ function createMap(earthquakes) {
 
   legend.onAdd = function (map) {
     let div = L.DomUtil.create('div', 'info legend'),
-        grades = [0, 1, 2, 3, 4, 5, 6],
+        grades = [-10, 10, 30, 50, 70, 90],
         labels = [];
 
-    // Loop through our density intervals and generate a label with a colored square for each interval.
+    // Loop through our depth intervals and generate a label with a colored square for each interval.
     for (let i = 0; i < grades.length; i++) {
       div.innerHTML +=
-        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+        '<i style="background:' + getDepthColor(grades[i] + 1) + '"></i> ' +
+        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' km<br>' : '+ km');
     }
 
     return div;
